@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VRM Viewer</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    #upload { position: absolute; top: 10px; left: 10px; z-index: 1; }
+  </style>
+</head>
+<body>
+  <input type="file" id="upload" accept=".vrm" />
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.152.2/examples/jsm/controls/OrbitControls.js';
+    import { GLTFLoader } from 'https://unpkg.com/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
+    import { VRMLoaderPlugin, VRMUtils } from 'https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@0.6.9/lib/three-vrm.module.js';
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    camera.position.set(0, 1.4, 3);
+    controls.target.set(0, 1.4, 0);
+    controls.update();
+
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(1, 1, 1);
+    scene.add(light);
+
+    let currentVrm = null;
+
+    document.getElementById('upload').addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      const arrayBuffer = await file.arrayBuffer();
+
+      const loader = new GLTFLoader();
+      loader.register(parser => new VRMLoaderPlugin(parser));
+      const gltf = await loader.parseAsync(arrayBuffer, '');
+
+      const vrm = gltf.userData.vrm;
+      if (currentVrm) {
+        scene.remove(currentVrm.scene);
+        VRMUtils.deepDispose(currentVrm.scene);
+      }
+
+      VRMUtils.removeUnnecessaryJoints(vrm.scene);
+      currentVrm = vrm;
+      scene.add(vrm.scene);
+      vrm.scene.rotation.y = Math.PI;
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
