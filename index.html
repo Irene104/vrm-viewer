@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>VRM Viewer + Export</title>
+  <title>VRM Viewer (Non-Module)</title>
   <style>
     html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
     #upload, #export { position: absolute; top: 10px; z-index: 1; }
@@ -14,19 +14,19 @@
   <input type="file" id="upload" accept=".vrm" />
   <button id="export">匯出角色設定 JSON</button>
 
-  <script type="module">
-    import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
-    import { OrbitControls } from 'https://unpkg.com/three@0.152.2/examples/jsm/controls/OrbitControls.js';
-    import { GLTFLoader } from 'https://unpkg.com/three@0.152.2/examples/jsm/loaders/GLTFLoader.js';
-    import { VRMLoaderPlugin, VRMUtils } from 'https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@0.6.9/lib/three-vrm.module.js';
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@0.6.9/dist/three-vrm.min.js"></script>
 
+  <script>
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
     camera.position.set(0, 1.4, 3);
     controls.target.set(0, 1.4, 0);
     controls.update();
@@ -38,27 +38,29 @@
     let currentVrm = null;
     let currentFilename = "MyCharacter.vrm";
 
-    document.getElementById('upload').addEventListener('change', async (event) => {
+    document.getElementById('upload').addEventListener('change', function(event) {
       const file = event.target.files[0];
       if (!file) return;
       currentFilename = file.name;
 
-      const arrayBuffer = await file.arrayBuffer();
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const loader = new THREE.GLTFLoader();
+        loader.register(parser => new THREE.VRMLoaderPlugin(parser));
+        loader.parse(e.target.result, '', function(gltf) {
+          const vrm = gltf.userData.vrm;
+          if (currentVrm) {
+            scene.remove(currentVrm.scene);
+            THREE.VRMUtils.deepDispose(currentVrm.scene);
+          }
 
-      const loader = new GLTFLoader();
-      loader.register(parser => new VRMLoaderPlugin(parser));
-      const gltf = await loader.parseAsync(arrayBuffer, '');
-
-      const vrm = gltf.userData.vrm;
-      if (currentVrm) {
-        scene.remove(currentVrm.scene);
-        VRMUtils.deepDispose(currentVrm.scene);
-      }
-
-      VRMUtils.removeUnnecessaryJoints(vrm.scene);
-      currentVrm = vrm;
-      scene.add(vrm.scene);
-      vrm.scene.rotation.y = Math.PI;
+          THREE.VRMUtils.removeUnnecessaryJoints(vrm.scene);
+          currentVrm = vrm;
+          scene.add(vrm.scene);
+          vrm.scene.rotation.y = Math.PI;
+        });
+      };
+      reader.readAsArrayBuffer(file);
     });
 
     function animate() {
@@ -67,7 +69,7 @@
     }
     animate();
 
-    document.getElementById('export').addEventListener('click', () => {
+    document.getElementById('export').addEventListener('click', function() {
       const config = {
         characterName: currentFilename.replace('.vrm', ''),
         vrmFile: currentFilename,
