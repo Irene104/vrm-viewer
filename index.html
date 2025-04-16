@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>VRM Viewer - Final Working Version</title>
+  <title>VRM Viewer - OrbitControls Fixed</title>
   <style>
     html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
     #upload, #export { position: absolute; top: 10px; z-index: 1; }
@@ -14,7 +14,7 @@
   <input type="file" id="upload" accept=".vrm" />
   <button id="export">匯出角色設定 JSON</button>
 
-  <!-- 非模組版本 CDN：已本地測試通過 -->
+  <!-- 正確引入非模組 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/OrbitControls.js"></script>
@@ -27,7 +27,7 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    const controls = new OrbitControls(camera, renderer.domElement);  // ✅ 正確寫法：OrbitControls 是全域變數
+    const controls = new OrbitControls(camera, renderer.domElement);  // ✅ 改為正確寫法：直接用全域變數
     camera.position.set(0, 1.4, 3);
     controls.target.set(0, 1.4, 0);
     controls.update();
