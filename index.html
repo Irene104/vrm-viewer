@@ -2,14 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>VRM Viewer</title>
+  <title>VRM Viewer + Export</title>
   <style>
     html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
-    #upload { position: absolute; top: 10px; left: 10px; z-index: 1; }
+    #upload, #export { position: absolute; top: 10px; z-index: 1; }
+    #upload { left: 10px; }
+    #export { left: 180px; }
   </style>
 </head>
 <body>
   <input type="file" id="upload" accept=".vrm" />
+  <button id="export">匯出角色設定 JSON</button>
+
   <script type="module">
     import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
     import { OrbitControls } from 'https://unpkg.com/three@0.152.2/examples/jsm/controls/OrbitControls.js';
@@ -32,10 +36,13 @@
     scene.add(light);
 
     let currentVrm = null;
+    let currentFilename = "MyCharacter.vrm";
 
     document.getElementById('upload').addEventListener('change', async (event) => {
       const file = event.target.files[0];
       if (!file) return;
+      currentFilename = file.name;
+
       const arrayBuffer = await file.arrayBuffer();
 
       const loader = new GLTFLoader();
@@ -59,6 +66,24 @@
       renderer.render(scene, camera);
     }
     animate();
+
+    document.getElementById('export').addEventListener('click', () => {
+      const config = {
+        characterName: currentFilename.replace('.vrm', ''),
+        vrmFile: currentFilename,
+        scale: 1.0,
+        initialPosition: [0, 0, 0],
+        startExpression: "neutral"
+      };
+      const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = config.characterName + ".json";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
   </script>
 </body>
 </html>
